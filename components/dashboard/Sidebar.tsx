@@ -15,16 +15,17 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import Logo from "../ui/Logo";
+import Link from "next/link";
 
 const items = [
-  { name: "Dashboard", icon: LayoutDashboard },
-  { name: "Brain Dump", icon: BrainCircuit },
-  { name: "Planner", icon: Calendar },
-  { name: "Focus Mode", icon: Focus },
-  { name: "AI Mentor", icon: Bot },
-  { name: "Reflections", icon: FileText },
-  { name: "Memories", icon: Database },
-  { name: "Settings", icon: Settings },
+  { name: "Dashboard", icon: LayoutDashboard, link: "/dashboard" },
+  { name: "Brain Dump", icon: BrainCircuit, link: "/dashboard/brain-dump" },
+  { name: "Planner", icon: Calendar, link: "/dashboard/planner" },
+  { name: "Focus Mode", icon: Focus, link: "/dashboard/focus" },
+  { name: "AI Mentor", icon: Bot, link: "/dashboard/ai-mentor" },
+  { name: "Reflections", icon: FileText, link: "/dashboard/reflections" },
+  { name: "Memories", icon: Database, link: "/dashboard/memories" },
+  { name: "Settings", icon: Settings, link: "/dashboard/settings" },
 ];
 
 export default function Sidebar() {
@@ -38,19 +39,13 @@ export default function Sidebar() {
     >
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-white/10">
-        {!collapsed && (
-            <Logo />
-        )}
+        {!collapsed && <Logo />}
 
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="p-2 rounded-xl hover:bg-white/10 transition"
         >
-          {collapsed ? (
-            <ChevronRight size={18} />
-          ) : (
-            <ChevronLeft size={18} />
-          )}
+          {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
         </button>
       </div>
 
@@ -64,19 +59,21 @@ export default function Sidebar() {
               key={item.name}
               whileHover={{ x: 4 }}
               className={`
-                group flex items-center gap-3 py-3 rounded-2xl cursor-pointer hover:bg-white/4 transition
+                group py-3 rounded-2xl cursor-pointer hover:bg-white/4 transition
                   ${collapsed ? "px-0" : "px-3"}
                 `}
             >
-              <div className="h-10 w-10 p-2 flex items-center justify-center rounded-xl border border-white/10 bg-white/3 group-hover:border-cyan-400/30 group-hover:bg-cyan-400/10 transition">
-                <Icon size={18} className="text-zinc-300" />
-              </div>
+              <Link href={item.link} className="flex items-center gap-3 w-full">
+                <div className="h-10 w-10 p-2 flex items-center justify-center rounded-xl border border-white/10 bg-white/3 group-hover:border-cyan-400/30 group-hover:bg-cyan-400/10 transition">
+                  <Icon size={18} className="text-zinc-300" />
+                </div>
 
-              {!collapsed && (
-                <span className="text-sm text-zinc-300 group-hover:text-white transition">
-                  {item.name}
-                </span>
-              )}
+                {!collapsed && (
+                  <span className="text-sm text-zinc-300 group-hover:text-white transition">
+                    {item.name}
+                  </span>
+                )}
+              </Link>
             </motion.div>
           );
         })}
@@ -87,12 +84,8 @@ export default function Sidebar() {
         <div className="rounded-2xl bg-white/3 border border-white/10 p-3">
           {!collapsed ? (
             <>
-              <div className="text-xs text-zinc-400">
-                Cognitive Load
-              </div>
-              <div className="text-lg font-semibold text-white">
-                Moderate
-              </div>
+              <div className="text-xs text-zinc-400">Cognitive Load</div>
+              <div className="text-lg font-semibold text-white">Moderate</div>
             </>
           ) : (
             <div className="h-2 w-2 rounded-full bg-cyan-400 mx-auto" />
