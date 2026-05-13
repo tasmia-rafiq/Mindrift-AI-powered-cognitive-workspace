@@ -57,7 +57,7 @@ export async function POST(req: Request) {
     if (userError || !user) {
       return NextResponse.json(
         { error: "You must be logged in." },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -67,7 +67,7 @@ export async function POST(req: Request) {
     if (!rawText) {
       return NextResponse.json(
         { error: "Please write what is on your mind first." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -94,7 +94,7 @@ export async function POST(req: Request) {
     if (!content) {
       return NextResponse.json(
         { error: "Mindrift could not organize this right now." },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -105,6 +105,10 @@ export async function POST(req: Request) {
       .insert({
         user_id: user.id,
         raw_text: rawText,
+        title: ai.tasks?.[0]?.title
+          ? `Mind session: ${ai.tasks[0].title}`
+          : "Mind session",
+        session_date: new Date().toISOString().slice(0, 10),
         summary: ai.summary,
         emotional_tone: ai.emotionalTone,
         urgency_level: ai.urgencyLevel,
@@ -138,7 +142,7 @@ export async function POST(req: Request) {
     if (tasksError) throw tasksError;
 
     const taskByTitle = new Map(
-      insertedTasks.map((task) => [task.title.toLowerCase(), task])
+      insertedTasks.map((task) => [task.title.toLowerCase(), task]),
     );
 
     const plannerRows = ai.planner.map((block) => {
@@ -164,8 +168,7 @@ export async function POST(req: Request) {
     if (plannerError) throw plannerError;
 
     const nextTask =
-      taskByTitle.get(ai.nextActionTaskTitle.toLowerCase()) ??
-      insertedTasks[0];
+      taskByTitle.get(ai.nextActionTaskTitle.toLowerCase()) ?? insertedTasks[0];
 
     await supabase
       .from("brain_dumps")
@@ -189,6 +192,10 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       brainDumpId: brainDump.id,
+      title: brainDump.title,
+      rawText: brainDump.raw_text,
+      createdAt: brainDump.created_at,
+      sessionDate: brainDump.session_date,
       summary: ai.summary,
       emotionalTone: ai.emotionalTone,
       burnoutLevel: ai.burnoutLevel,
@@ -222,10 +229,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json(
       {
-        error:
-          "Mindrift could not organize this right now. Please try again.",
+        error: "Mindrift could not organize this right now. Please try again.",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

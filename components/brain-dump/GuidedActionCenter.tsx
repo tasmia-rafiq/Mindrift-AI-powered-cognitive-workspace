@@ -1,6 +1,7 @@
 import { BrainDumpAIResult, MindriftTask } from '@/lib/brain-dump/types';
 import { motion } from 'framer-motion';
 import { Bot, Play, RotateCcw, ShieldAlert } from 'lucide-react';
+import Image from 'next/image';
 
 export default function GuidedActionCenter({
   result,
@@ -44,14 +45,14 @@ export default function GuidedActionCenter({
             transition={{ duration: 3, repeat: Infinity }}
             className="flex h-20 w-20 items-center justify-center rounded-[28px] border border-cyan-400/20 bg-cyan-400/10"
           >
-            <Bot size={38} className="text-cyan-300" />
+            <Image src="/miro.png" alt="Miro" width={40} height={40} />
           </motion.div>
 
           <div>
-            <h2 className="text-2xl font-medium text-white">
-              {guidedMode ? "Guided flow active" : "Ready to start gently"}
+            <h2 className="text-3xl! font-semibold! text-white">
+              {guidedMode ? "Guided flow active" : "Ready to start calmly"}
             </h2>
-            <p className="mt-1 text-zinc-500">
+            <p className="mt-2 text-zinc-400">
               Mindrift will walk with you one step at a time.
             </p>
           </div>
@@ -71,13 +72,13 @@ export default function GuidedActionCenter({
             </div>
           ) : (
             <>
-              <p className="text-xl leading-9 text-zinc-200">
+              <p className="text-2xl font-medium text-zinc-200">
                 Start with: <span className="text-white">{nextTask.title}</span>
               </p>
 
-              <p className="mt-3 text-zinc-500">{nextTask.reason}</p>
+              <p className="mt-2 text-zinc-300">~ {nextTask.reason}</p>
 
-              <p className="mt-4 text-zinc-500">{result.gentleMessage}</p>
+              <p className="mt-4 text-zinc-400">{result.gentleMessage}</p>
             </>
           )}
 

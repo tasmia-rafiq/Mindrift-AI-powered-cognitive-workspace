@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Bot, CheckCircle2 } from "lucide-react";
+import Image from "next/image";
 
 export default function MindriftGuide() {
   const items = [
@@ -15,16 +16,16 @@ export default function MindriftGuide() {
     <div className="rounded-[30px] border border-white/10 bg-black/25 p-6">
       <div className="flex items-center gap-3">
         <motion.div
-          animate={{ y: [0, -7, 0] }}
+          animate={{ y: [0, -8, 0] }}
           transition={{ duration: 3, repeat: Infinity }}
-          className="flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10"
+          className="flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10"
         >
-          <Bot size={24} className="text-cyan-300" />
+          <Image src="/miro.png" alt="Miro Assistant" width={40} height={40} />
         </motion.div>
 
         <div>
           <div className="font-medium text-white">
-            Miri, your Mindrift guide
+            Miro, your Mindrift guide
           </div>
           <div className="text-sm text-zinc-500">
             I'll help you move gently.

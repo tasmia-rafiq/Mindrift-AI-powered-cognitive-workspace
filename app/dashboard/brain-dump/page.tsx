@@ -47,7 +47,12 @@ export default function BrainDumpPage() {
 
   const [isPending, startTransition] = useTransition();
 
-  const completedCount = tasks.filter((task) => task.status === "completed").length;
+  const [isLoadingSession, setIsLoadingSession] = useState(true);
+  const [isCreatingNew, setIsCreatingNew] = useState(false);
+
+  const completedCount = tasks.filter(
+    (task) => task.status === "completed",
+  ).length;
 
   const progress = tasks.length
     ? Math.round((completedCount / tasks.length) * 100)
@@ -66,6 +71,48 @@ export default function BrainDumpPage() {
     if (progress >= 40) return "Moderate";
     return "Heavy";
   }, [progress, tasks.length]);
+
+  async function loadLatestSession() {
+    setIsLoadingSession(true);
+
+    const response = await fetch("/api/brain-dump/latest", {
+      cache: "no-store",
+    });
+
+    const data = await response.json();
+
+    setIsLoadingSession(false);
+
+    if (!response.ok || !data.session) return;
+
+    setResult(data.session);
+    setInput("");
+    setTasks(data.session.tasks);
+    setPlanner(data.session.planner);
+    setActiveTaskId(
+      data.session.nextActionTaskId ??
+        data.session.tasks.find(
+          (task: MindriftTask) => task.status === "pending",
+        )?.id ??
+        null,
+    );
+  }
+
+  useEffect(() => {
+    loadLatestSession();
+  }, []);
+
+  function startNewBrainDump() {
+    setIsCreatingNew(true);
+    setInput("");
+    setResult(null);
+    setTasks([]);
+    setPlanner([]);
+    setActiveTaskId(null);
+    setGuidedMode(false);
+    setRescueMode(false);
+    setFocusSessionOpen(false);
+  }
 
   async function handleAnalyze() {
     if (!input.trim()) return;
@@ -99,19 +146,27 @@ export default function BrainDumpPage() {
     setTasks(data.tasks);
     setPlanner(data.planner);
     setActiveTaskId(data.nextActionTaskId);
+    setIsCreatingNew(false);
+  }
+
+  function formatSessionDate(value?: string) {
+    if (!value) return "";
+
+    return new Intl.DateTimeFormat("en", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(value));
   }
 
   function syncTaskStatus(taskId: string, status: TaskStatus) {
     setTasks((prev) =>
-      prev.map((task) =>
-        task.id === taskId ? { ...task, status } : task
-      )
+      prev.map((task) => (task.id === taskId ? { ...task, status } : task)),
     );
 
     setPlanner((prev) =>
       prev.map((block) =>
-        block.taskId === taskId ? { ...block, status } : block
-      )
+        block.taskId === taskId ? { ...block, status } : block,
+      ),
     );
 
     startTransition(async () => {
@@ -120,8 +175,7 @@ export default function BrainDumpPage() {
   }
 
   function startGuidedFlow(taskId?: string) {
-    const taskToStart =
-      tasks.find((task) => task.id === taskId) ?? nextTask;
+    const taskToStart = tasks.find((task) => task.id === taskId) ?? nextTask;
 
     if (!taskToStart || !result) return;
 
@@ -164,7 +218,7 @@ export default function BrainDumpPage() {
       setCurrentStepIndex(0);
 
       const next = tasks.find(
-        (task) => task.id !== activeTask.id && task.status === "pending"
+        (task) => task.id !== activeTask.id && task.status === "pending",
       );
 
       setActiveTaskId(next?.id ?? null);
@@ -219,7 +273,7 @@ export default function BrainDumpPage() {
     });
 
     const next = tasks.find(
-      (task) => task.id !== taskId && task.status === "pending"
+      (task) => task.id !== taskId && task.status === "pending",
     );
 
     if (next) setActiveTaskId(next.id);
@@ -272,13 +326,15 @@ export default function BrainDumpPage() {
       <div className="mx-auto max-w-7xl space-y-8">
         <BrainDumpHeader progress={progress} pressureLevel={pressureLevel} />
 
-        <BrainDumpInput
-          input={input}
-          setInput={setInput}
-          onAnalyze={handleAnalyze}
-          onReset={resetAll}
-          isThinking={isThinking || isPending}
-        />
+        {(!result || isCreatingNew) && (
+          <BrainDumpInput
+            input={input}
+            setInput={setInput}
+            onAnalyze={handleAnalyze}
+            onReset={resetAll}
+            isThinking={isThinking || isPending}
+          />
+        )}
 
         <AnimatePresence>{isThinking && <ThinkingPanel />}</AnimatePresence>
 
@@ -287,8 +343,33 @@ export default function BrainDumpPage() {
             <motion.div
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
-              className="space-y-8"
+              className="space-y-8 border-t border-white/10 pt-8"
             >
+              {result && (
+                <div className="rounded-[28px] border border-white/10 bg-white/3 p-5">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <div className="text-sm text-zinc-500">
+                        Saved Mind Session
+                      </div>
+                      <div className="mt-1 text-lg font-medium text-white">
+                        {result.title || "Mind session"}
+                      </div>
+                      <div className="mt-1 text-sm text-zinc-500">
+                        {formatSessionDate(result.createdAt)}
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={startNewBrainDump}
+                      className="rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-black transition hover:scale-[1.02]"
+                    >
+                      New brain dump
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <AIUnderstanding result={result} />
 
               <GuidedActionCenter

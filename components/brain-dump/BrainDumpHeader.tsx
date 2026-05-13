@@ -15,14 +15,14 @@ export default function BrainDumpHeader ({
           Brain Dump Inbox
         </div>
 
-        <h1 className="mt-5 text-4xl font-semibold tracking-tight text-white lg:text-5xl">
+        <h1 className="mt-5 text-[2.5rem]! font-semibold leading-tight text-white lg:text-5xl">
           Empty your mind.
-          <span className="block bg-linear-to-r from-white via-zinc-300 to-zinc-500 bg-clip-text text-transparent">
+          <span className="block bg-linear-to-r from-white via-cyan-300 to-cyan-500 bg-clip-text text-transparent">
             Then let Mindrift guide you.
           </span>
         </h1>
 
-        <p className="mt-4 max-w-2xl text-zinc-500">
+        <p className="mt-2 max-w-2xl text-zinc-300">
           Write the messy thoughts. Mindrift turns them into a calm plan, starts
           the first step, tracks progress, and adjusts when you feel stuck.
         </p>

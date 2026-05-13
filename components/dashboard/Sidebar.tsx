@@ -34,11 +34,11 @@ export default function Sidebar() {
   return (
     <div
       className={`h-full border-r border-white/10 bg-white/2 backdrop-blur-2xl flex flex-col transition-all duration-300 ${
-        collapsed ? "w-20" : "w-65"
+        collapsed ? "w-20" : "w-60"
       }`}
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-white/10">
+      <div className="flex items-center justify-between p-4 h-19 border-b border-white/10">
         {!collapsed && <Logo />}
 
         <button
@@ -59,7 +59,7 @@ export default function Sidebar() {
               key={item.name}
               whileHover={{ x: 4 }}
               className={`
-                group py-3 rounded-2xl cursor-pointer hover:bg-white/4 transition
+                group py-1.5 rounded-2xl cursor-pointer hover:bg-white/4 transition
                   ${collapsed ? "px-0" : "px-3"}
                 `}
             >

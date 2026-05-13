@@ -18,18 +18,18 @@ export default function GeneratedTasks({
   onReschedule: (id: string) => void;
 }) {
   return (
-    <section className="rounded-4xl border border-white/10 bg-white/3 p-6 backdrop-blur-2xl">
-      <div className="flex items-center justify-between">
+    <section className="rounded-4xl border border-white/10 bg-white/3 p-6 py-8 backdrop-blur-2xl">
+      <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-xl font-medium text-white">
+          <h2 className="text-3xl! font-semibold! text-white">
             Tasks Mindrift created
           </h2>
-          <p className="mt-1 text-sm text-zinc-500">
+          <p className="mt-2 text-sm text-zinc-300">
             Each task has actions, tiny steps, and progress states.
           </p>
         </div>
 
-        <CalendarCheck className="text-cyan-300" />
+        <CalendarCheck className="text-cyan-300" size={28} />
       </div>
 
       <div className="mt-6 space-y-3">
@@ -42,24 +42,24 @@ export default function GeneratedTasks({
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.06 }}
-              className="rounded-2xl border border-white/10 bg-black/20 p-4"
+              className="rounded-2xl border border-white/10 bg-(--bg-900)/40 p-4"
             >
               <button
                 onClick={() => setExpandedTaskId(isOpen ? null : task.id)}
                 className="flex w-full items-start justify-between gap-4 text-left"
               >
                 <div>
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-4">
                     <div className="font-medium text-white">{task.title}</div>
                     <StatusBadge status={task.status} />
                   </div>
 
-                  <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                  <div className="mt-4 flex flex-wrap gap-2 text-xs">
                     <span className="rounded-full bg-white/6 px-3 py-1 text-zinc-400">
                       {task.category}
                     </span>
                     <span className="rounded-full bg-white/6 px-3 py-1 text-zinc-400">
-                      {task.estimatedMinutes}
+                      {task.estimatedMinutes} min
                     </span>
                     <span className="rounded-full bg-white/6 px-3 py-1 text-zinc-400">
                       {task.difficulty} energy
@@ -86,7 +86,7 @@ export default function GeneratedTasks({
                     className="overflow-hidden"
                   >
                     <div className="mt-5 rounded-2xl border border-white/10 bg-white/2.5 p-4">
-                      <p className="text-sm leading-6 text-zinc-400">
+                      <p className="text-sm leading-6 text-zinc-300">
                         {task.reason}
                       </p>
 
@@ -96,7 +96,7 @@ export default function GeneratedTasks({
                             key={step}
                             className="flex items-center gap-3 text-sm text-zinc-300"
                           >
-                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/6 text-xs text-zinc-400">
+                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-cyan-500/6 text-xs text-zinc-400">
                               {idx + 1}
                             </span>
                             {step}
@@ -107,7 +107,7 @@ export default function GeneratedTasks({
                       <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
                         <button
                           onClick={() => onStart(task.id)}
-                          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-black transition hover:scale-[1.02]"
+                          className="flex items-center h-fit justify-center gap-2 rounded-2xl bg-white p-3 text-sm font-semibold text-black transition hover:scale-[1.02]"
                         >
                           Start focus
                           <Play size={15} />
@@ -115,7 +115,7 @@ export default function GeneratedTasks({
 
                         <button
                           onClick={() => onReschedule(task.id)}
-                          className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/3 px-4 py-3 text-sm text-zinc-300 transition hover:bg-white/6"
+                          className="flex items-center h-fit justify-center gap-2 rounded-2xl border border-white/10 bg-white/3 p-3 text-sm text-zinc-300 transition hover:bg-white/6"
                         >
                           Move later
                           <RotateCcw size={15} />
@@ -123,7 +123,7 @@ export default function GeneratedTasks({
 
                         <button
                           onClick={() => setExpandedTaskId(null)}
-                          className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-white"
+                          className="flex items-center h-fit justify-center gap-2 rounded-2xl border border-white/10 p-3 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-white"
                         >
                           Keep parked
                           <Pause size={15} />

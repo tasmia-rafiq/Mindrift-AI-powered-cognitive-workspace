@@ -28,11 +28,11 @@ export default function AIUnderstanding({ result }: { result: BrainDumpAIResult 
       />
 
       <div className="lg:col-span-4 rounded-[30px] border border-white/10 bg-white/3 p-6">
-        <h2 className="text-xl font-medium text-white">
+        <h2 className="text-2xl! font-medium! text-white">
           What Mindrift understood
         </h2>
 
-        <p className="mt-4 max-w-4xl leading-8 text-zinc-300">
+        <p className="mt-2 max-w-4xl leading-8 text-zinc-300">
           {result.summary}
         </p>
 

@@ -11,23 +11,23 @@ export default function AdaptivePlanner({
   progress: number;
 }) {
   return (
-    <section className="rounded-4xl border border-white/10 bg-white/3 p-6 backdrop-blur-2xl">
-      <div className="flex items-center justify-between">
+    <section className="rounded-4xl border border-white/10 bg-white/3 p-6 py-8 backdrop-blur-2xl">
+      <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-xl font-medium text-white">
+          <h2 className="text-3xl! font-semibold! text-white">
             Adaptive plan for today
           </h2>
-          <p className="mt-1 text-sm text-zinc-500">
+          <p className="mt-2 text-sm text-zinc-300">
             Updates as you complete, pause, or move tasks.
           </p>
         </div>
 
-        <Sparkles className="text-violet-300" />
+        <Sparkles className="text-violet-300" size={28} />
       </div>
 
       <div className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-4">
         <div className="flex items-center justify-between text-sm">
-          <span className="text-zinc-400">Pressure relief</span>
+          <span className="text-zinc-300">Pressure relief</span>
           <span className="text-cyan-300">{progress}%</span>
         </div>
 

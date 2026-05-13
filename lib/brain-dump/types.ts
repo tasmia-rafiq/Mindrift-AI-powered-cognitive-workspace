@@ -33,6 +33,11 @@ export type PlannerBlock = {
 
 export type BrainDumpAIResult = {
   brainDumpId: string;
+  title?: string;
+  rawText?: string;
+  createdAt?: string;
+  sessionDate?: string;
+
   summary: string;
   emotionalTone: string;
   burnoutLevel: Urgency;
