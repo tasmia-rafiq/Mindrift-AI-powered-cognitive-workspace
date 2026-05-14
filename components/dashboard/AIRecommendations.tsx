@@ -1,23 +1,15 @@
-export default function AIRecommendations() {
-  const insights = [
-    "You are switching tasks too frequently.",
-    "Morning hours show highest cognitive clarity.",
-    "Break large tasks into 30-45 min blocks.",
-  ];
-
+export default function AIRecommendations({ items }: { items: string[] }) {
   return (
-    <div className="rounded-3xl border border-white/10 bg-white/3 px-6 py-8">
-      <h2 className="text-3xl! font-medium">
-        AI Insights
-      </h2>
+    <div className="rounded-3xl border border-white/10 bg-white/3 p-6">
+      <h2 className="text-3xl! font-medium">AI Recommendations</h2>
 
-      <div className="mt-5 space-y-3">
-        {insights.map((i) => (
+      <div className="mt-6 space-y-3">
+        {items.map((item) => (
           <div
-            key={i}
-            className="p-4 rounded-2xl bg-white/2 border border-white/10 text-sm text-zinc-300"
+            key={item}
+            className="rounded-2xl border border-white/10 bg-white/4 p-4 text-sm text-zinc-300"
           >
-            {i}
+            {item}
           </div>
         ))}
       </div>

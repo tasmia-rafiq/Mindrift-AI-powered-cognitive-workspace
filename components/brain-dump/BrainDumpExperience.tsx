@@ -236,7 +236,7 @@
 
 //           <div>
 //             <h1 className="text-3xl font-semibold tracking-tight">
-//               Brain Dump
+//               Mind Unload
 //             </h1>
 
 //             <p className="text-zinc-500 mt-1">
@@ -861,7 +861,7 @@
 
 //             <div>
 //               <h1 className="text-3xl! font-semibold tracking-tight">
-//                 Brain Dump
+//                 Mind Unload
 //               </h1>
 //               <p className="mt-1 text-zinc-300">
 //                 Drop everything here. Mindrift will turn it into a calm plan.
@@ -1374,7 +1374,7 @@ export default function BrainDumpExperience() {
 
               <div>
                 <h1 className="text-3xl font-semibold tracking-tight">
-                  Brain Dump
+                  Mind Unload
                 </h1>
                 <p className="mt-1 text-zinc-500">
                   Drop your messy thoughts. Mindrift will turn them into a calm
@@ -1584,7 +1584,7 @@ export default function BrainDumpExperience() {
                         Today’s Auto Plan
                       </h3>
                       <p className="mt-1 text-sm text-zinc-500">
-                        Created from your brain dump. No manual adding needed.
+                        Created from your Mind Unload. No manual adding needed.
                       </p>
                     </div>
 

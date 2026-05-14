@@ -60,7 +60,7 @@ export default function TopNavbar({ user }: any) {
         >
           <div className="h-2 w-2 rounded-full bg-cyan-300" />
 
-          <span className="text-sm text-cyan-200">AI Active</span>
+          <span className="text-sm text-cyan-200">Miro Active</span>
         </motion.div>
       </div>
 

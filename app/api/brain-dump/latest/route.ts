@@ -81,7 +81,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error("Load latest brain dump error:", error);
+    console.error("Load latest Mind Unload error:", error);
 
     return NextResponse.json(
       { error: "Could not load saved session." },

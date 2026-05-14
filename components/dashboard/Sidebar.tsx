@@ -19,7 +19,7 @@ import Link from "next/link";
 
 const items = [
   { name: "Dashboard", icon: LayoutDashboard, link: "/dashboard" },
-  { name: "Brain Dump", icon: BrainCircuit, link: "/dashboard/brain-dump" },
+  { name: "Mind Unload", icon: BrainCircuit, link: "/dashboard/brain-dump" },
   { name: "Planner", icon: Calendar, link: "/dashboard/planner" },
   { name: "Focus Mode", icon: Focus, link: "/dashboard/focus" },
   { name: "AI Mentor", icon: Bot, link: "/dashboard/ai-mentor" },

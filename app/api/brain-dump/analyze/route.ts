@@ -29,6 +29,7 @@ type GroqPlannerBlock = {
 };
 
 type GroqBrainDumpResult = {
+  title: string;
   summary: string;
   emotionalTone: string;
   burnoutLevel: "Low" | "Medium" | "High";
@@ -81,7 +82,7 @@ export async function POST(req: Request) {
         },
         {
           role: "user",
-          content: `${brainDumpJsonInstruction}\n\nUser brain dump:\n${rawText}`,
+          content: `${brainDumpJsonInstruction}\n\nUser Mind Unload:\n${rawText}`,
         },
       ],
       response_format: {
@@ -105,10 +106,7 @@ export async function POST(req: Request) {
       .insert({
         user_id: user.id,
         raw_text: rawText,
-        title: ai.tasks?.[0]?.title
-          ? `Mind session: ${ai.tasks[0].title}`
-          : "Mind session",
-        session_date: new Date().toISOString().slice(0, 10),
+        title: ai.title,
         summary: ai.summary,
         emotional_tone: ai.emotionalTone,
         urgency_level: ai.urgencyLevel,
@@ -192,10 +190,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       brainDumpId: brainDump.id,
-      title: brainDump.title,
+      title: ai.title,
       rawText: brainDump.raw_text,
       createdAt: brainDump.created_at,
-      sessionDate: brainDump.session_date,
       summary: ai.summary,
       emotionalTone: ai.emotionalTone,
       burnoutLevel: ai.burnoutLevel,
@@ -225,7 +222,7 @@ export async function POST(req: Request) {
       })),
     });
   } catch (error) {
-    console.error("Brain dump analyze error:", error);
+    console.error("Mind Unload analyze error:", error);
 
     return NextResponse.json(
       {

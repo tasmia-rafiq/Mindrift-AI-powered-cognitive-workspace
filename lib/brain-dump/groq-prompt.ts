@@ -31,6 +31,7 @@ export const brainDumpJsonInstruction = `
 Return this exact JSON shape:
 
 {
+  "title": "short title for this Mind Unload",
   "summary": "simple explanation",
   "emotionalTone": "simple emotional tone",
   "burnoutLevel": "Low | Medium | High",

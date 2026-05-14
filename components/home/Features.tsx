@@ -13,7 +13,7 @@ import {
 
 const features = [
   {
-    title: "Brain Dump Intelligence",
+    title: "Mind Unload Intelligence",
     description:
       "Unload chaotic thoughts instantly. Mindrift organizes everything into structured clarity using adaptive AI cognition.",
     icon: BrainCircuit,

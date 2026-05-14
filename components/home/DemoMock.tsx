@@ -88,7 +88,7 @@ export default function DemoMock() {
                   </div>
 
                   <div className="mt-1 text-xl font-semibold text-white">
-                    Brain Dump Session
+                    Mind Unload Session
                   </div>
                 </div>
 

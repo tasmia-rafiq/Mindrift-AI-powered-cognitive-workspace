@@ -20,14 +20,22 @@ import {
 import BrainDumpHeader from "@/components/brain-dump/BrainDumpHeader";
 import BrainDumpInput from "@/components/brain-dump/BrainDumpInput";
 import ThinkingPanel from "@/components/brain-dump/ThinkingPanel";
-import AIUnderstanding from "@/components/brain-dump/AIUnderstanding";
 import GuidedActionCenter from "@/components/brain-dump/GuidedActionCenter";
 import GeneratedTasks from "@/components/brain-dump/GeneratedTasks";
 import AdaptivePlanner from "@/components/brain-dump/AdaptivePlanner";
 import TaskFocusSession from "@/components/brain-dump/TaskFocusSession";
+import BrainDumpHistory from "@/components/brain-dump/BrainDumpHistory";
+import {
+  CurrentFlowSkeleton,
+  HistorySkeleton,
+} from "@/components/brain-dump/BrainDumpSkeletons";
+import EmptyGeneratedFlow from "@/components/brain-dump/EmptyGeneratedFlow";
+import AiInsights from "@/components/brain-dump/AiInsights";
+import { Plus, Sparkles } from "lucide-react";
 
 export default function BrainDumpPage() {
   const [input, setInput] = useState("");
+  const [showInput, setShowInput] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
   const [result, setResult] = useState<BrainDumpAIResult | null>(null);
 
@@ -47,8 +55,8 @@ export default function BrainDumpPage() {
 
   const [isPending, startTransition] = useTransition();
 
-  const [isLoadingSession, setIsLoadingSession] = useState(true);
-  const [isCreatingNew, setIsCreatingNew] = useState(false);
+  const [history, setHistory] = useState<BrainDumpAIResult[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
 
   const completedCount = tasks.filter(
     (task) => task.status === "completed",
@@ -72,43 +80,39 @@ export default function BrainDumpPage() {
     return "Heavy";
   }, [progress, tasks.length]);
 
-  async function loadLatestSession() {
-    setIsLoadingSession(true);
-
-    const response = await fetch("/api/brain-dump/latest", {
-      cache: "no-store",
-    });
-
-    const data = await response.json();
-
-    setIsLoadingSession(false);
-
-    if (!response.ok || !data.session) return;
-
-    setResult(data.session);
-    setInput("");
-    setTasks(data.session.tasks);
-    setPlanner(data.session.planner);
-    setActiveTaskId(
-      data.session.nextActionTaskId ??
-        data.session.tasks.find(
-          (task: MindriftTask) => task.status === "pending",
-        )?.id ??
-        null,
-    );
-  }
-
   useEffect(() => {
-    loadLatestSession();
+    async function loadHistory() {
+      const response = await fetch("/api/brain-dump/history");
+      const data = await response.json();
+
+      setIsLoadingHistory(false);
+
+      if (!response.ok) return;
+
+      setHistory(data.dumps);
+
+      const latest = data.dumps[0];
+
+      if (latest) {
+        loadDumpIntoView(latest);
+        setShowInput(false);
+      } else {
+        setShowInput(true);
+      }
+    }
+
+    loadHistory();
   }, []);
 
-  function startNewBrainDump() {
-    setIsCreatingNew(true);
-    setInput("");
-    setResult(null);
-    setTasks([]);
-    setPlanner([]);
-    setActiveTaskId(null);
+  function loadDumpIntoView(dump: BrainDumpAIResult) {
+    setResult(dump);
+    setTasks(dump.tasks);
+    setPlanner(dump.planner);
+    setActiveTaskId(
+      dump.nextActionTaskId ??
+        dump.tasks.find((task) => task.status === "pending")?.id ??
+        null,
+    );
     setGuidedMode(false);
     setRescueMode(false);
     setFocusSessionOpen(false);
@@ -146,7 +150,9 @@ export default function BrainDumpPage() {
     setTasks(data.tasks);
     setPlanner(data.planner);
     setActiveTaskId(data.nextActionTaskId);
-    setIsCreatingNew(false);
+    setHistory((prev) => [data, ...prev]);
+    setInput("");
+    setShowInput(false);
   }
 
   function formatSessionDate(value?: string) {
@@ -288,15 +294,15 @@ export default function BrainDumpPage() {
     }
   }
 
-  function resetAll() {
+  function resetInput() {
     setInput("");
-    setResult(null);
-    setTasks([]);
-    setPlanner([]);
-    setActiveTaskId(null);
-    setGuidedMode(false);
-    setRescueMode(false);
-    setFocusSessionOpen(false);
+    // setResult(null);
+    // setTasks([]);
+    // setPlanner([]);
+    // setActiveTaskId(null);
+    // setGuidedMode(false);
+    // setRescueMode(false);
+    // setFocusSessionOpen(false);
   }
 
   useEffect(() => {
@@ -326,76 +332,73 @@ export default function BrainDumpPage() {
       <div className="mx-auto max-w-7xl space-y-8">
         <BrainDumpHeader progress={progress} pressureLevel={pressureLevel} />
 
-        {(!result || isCreatingNew) && (
-          <BrainDumpInput
-            input={input}
-            setInput={setInput}
-            onAnalyze={handleAnalyze}
-            onReset={resetAll}
-            isThinking={isThinking || isPending}
-          />
-        )}
-
-        <AnimatePresence>{isThinking && <ThinkingPanel />}</AnimatePresence>
-
-        <AnimatePresence>
-          {result && (
-            <motion.div
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="space-y-8 border-t border-white/10 pt-8"
-            >
-              {result && (
-                <div className="rounded-[28px] border border-white/10 bg-white/3 p-5">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <div className="text-sm text-zinc-500">
-                        Saved Mind Session
-                      </div>
-                      <div className="mt-1 text-lg font-medium text-white">
-                        {result.title || "Mind session"}
-                      </div>
-                      <div className="mt-1 text-sm text-zinc-500">
-                        {formatSessionDate(result.createdAt)}
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={startNewBrainDump}
-                      className="rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-black transition hover:scale-[1.02]"
-                    >
-                      New brain dump
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              <AIUnderstanding result={result} />
-
-              <GuidedActionCenter
-                result={result}
-                nextTask={nextTask}
-                guidedMode={guidedMode}
-                rescueMode={rescueMode}
-                onStart={() => startGuidedFlow()}
-                onRescue={activateRescueMode}
-                onReschedule={rescheduleTask}
-              />
-
-              <div className="grid grid-cols-1 gap-8 xl:grid-cols-[0.95fr_1.05fr]">
-                <GeneratedTasks
-                  tasks={tasks}
-                  expandedTaskId={expandedTaskId}
-                  setExpandedTaskId={setExpandedTaskId}
-                  onStart={(id) => startGuidedFlow(id)}
-                  onReschedule={rescheduleTask}
-                />
-
-                <AdaptivePlanner planner={planner} progress={progress} />
-              </div>
-            </motion.div>
+        <div className="space-y-8">
+          {showInput ? (
+            <BrainDumpInput
+              input={input}
+              setInput={setInput}
+              onAnalyze={handleAnalyze}
+              onReset={resetInput}
+              isThinking={isThinking || isPending}
+            />
+          ) : (
+            !isLoadingHistory && (
+              <NewMindUnloadButton onClick={() => setShowInput(true)} />
+            )
           )}
-        </AnimatePresence>
+
+          <AnimatePresence>{isThinking && <ThinkingPanel />}</AnimatePresence>
+
+          {isLoadingHistory ? (
+            <CurrentFlowSkeleton />
+          ) : result ? (
+            <>
+              <AnimatePresence>
+                <motion.div
+                  initial={{ opacity: 0, y: 24 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-8"
+                >
+                  <AiInsights result={result} tasks={tasks} />
+
+                  <GuidedActionCenter
+                    result={result}
+                    nextTask={nextTask}
+                    guidedMode={guidedMode}
+                    rescueMode={rescueMode}
+                    onStart={() => startGuidedFlow()}
+                    onRescue={activateRescueMode}
+                    onReschedule={rescheduleTask}
+                  />
+
+                  <div className="grid grid-cols-1 gap-8 xl:grid-cols-[0.95fr_1.05fr]">
+                    <GeneratedTasks
+                      tasks={tasks}
+                      expandedTaskId={expandedTaskId}
+                      setExpandedTaskId={setExpandedTaskId}
+                      onStart={(id) => startGuidedFlow(id)}
+                      onReschedule={rescheduleTask}
+                    />
+
+                    <AdaptivePlanner planner={planner} progress={progress} />
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+            </>
+          ) : (
+            <EmptyGeneratedFlow />
+          )}
+
+          {isLoadingHistory ? (
+            <HistorySkeleton />
+          ) : (
+            <BrainDumpHistory
+              dumps={history}
+              selectedDumpId={result?.brainDumpId}
+              onSelect={loadDumpIntoView}
+            />
+          )}
+        </div>
       </div>
 
       <AnimatePresence>
@@ -417,5 +420,31 @@ export default function BrainDumpPage() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+function NewMindUnloadButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="group flex w-full items-center justify-between rounded-[28px] border border-white/10 bg-white/3 p-5 text-left transition hover:border-cyan-400/20 hover:bg-white/5"
+    >
+      <div className="flex items-center gap-4">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10 text-cyan-300">
+          <Sparkles size={20} />
+        </div>
+
+        <div>
+          <div className="font-medium text-white">New Mind Unload</div>
+          <div className="mt-1 text-sm text-zinc-500">
+            Add a new messy thought and let Mindrift organize it.
+          </div>
+        </div>
+      </div>
+
+      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-black transition group-hover:scale-105">
+        <Plus size={18} />
+      </div>
+    </button>
   );
 }

@@ -56,7 +56,7 @@ export async function createBrainDumpPlan(rawText: string) {
 You are Miri, a calm Adaptive AI planner for overwhelmed people.
 
 Your job:
-- Read the user's messy brain dump.
+- Read the user's messy Mind Unload.
 - Use simple, easy English.
 - Do NOT sound clinical.
 - Do NOT use words like cognitive, diagnosis, disorder, therapy.
@@ -141,7 +141,7 @@ Rules:
   if (dumpError || !brainDump) {
     return {
       success: false,
-      error: "Could not save brain dump.",
+      error: "Could not save Mind Unload.",
     };
   }
 
