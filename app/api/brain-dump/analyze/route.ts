@@ -1,15 +1,8 @@
 import { NextResponse } from "next/server";
-import Groq from "groq-sdk";
 import { createClient } from "@/utils/supabase/server";
-import {
-  brainDumpJsonInstruction,
-  brainDumpSystemPrompt,
-} from "@/lib/brain-dump/groq-prompt";
 import { getUnfinishedTaskContext } from "@/lib/brain-dump/get-unfinished-context";
-
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
+import { analyzeWithGroq } from "@/lib/brain-dump/grok-analyze";
+import { analyzeWithGemini } from "@/lib/brain-dump/gemini-analyze";
 
 type Priority = "Low" | "Medium" | "High";
 
@@ -67,13 +60,6 @@ export async function POST(req: Request) {
       );
     }
 
-    if (!process.env.GROQ_API_KEY) {
-      return NextResponse.json(
-        { error: "Missing GROQ_API_KEY." },
-        { status: 500 },
-      );
-    }
-
     const body = await req.json();
     const rawText = String(body.rawText || "").trim();
 
@@ -86,49 +72,11 @@ export async function POST(req: Request) {
 
     const unfinishedTasks = await getUnfinishedTaskContext(user.id);
 
-    const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      temperature: 0.3,
-      response_format: {
-        type: "json_object",
-      },
-      messages: [
-        {
-          role: "system",
-          content: brainDumpSystemPrompt,
-        },
-        {
-          role: "user",
-          content: `
-          ${brainDumpJsonInstruction}
+    const USE_GEMINI = true;
 
-          New Mind Unload:
-          ${rawText}
-
-          Previous unfinished tasks:
-          ${JSON.stringify(unfinishedTasks ?? [], null, 2)}
-
-          Important:
-          - If previous unfinished tasks are provided, include them in the new adaptive planner too.
-          - Do not forget them.
-          - Do not duplicate the same task if it already exists.
-          - Blend old unfinished tasks with new tasks based on urgency, energy, difficulty, and stress level.
-          - If user seems tired, keep only urgent/easy tasks first and move heavier tasks later.
-          `,
-        },
-      ],
-    });
-
-    const content = completion.choices[0]?.message?.content;
-
-    if (!content) {
-      return NextResponse.json(
-        { error: "Mindrift could not organize this right now." },
-        { status: 500 },
-      );
-    }
-
-    const ai = JSON.parse(content) as GroqBrainDumpResult;
+    const ai: GroqBrainDumpResult = USE_GEMINI
+      ? await analyzeWithGemini(rawText, unfinishedTasks)
+      : await analyzeWithGroq(rawText, unfinishedTasks);
 
     const { data: brainDump, error: brainDumpError } = await supabase
       .from("brain_dumps")
@@ -148,8 +96,13 @@ export async function POST(req: Request) {
 
     if (brainDumpError) throw brainDumpError;
 
-    const existingTasksFromAI = ai.tasks.filter((task) => task.existingTaskId);
-    const newTasksFromAI = ai.tasks.filter((task) => !task.existingTaskId);
+    const existingTasksFromAI = ai.tasks.filter(
+      (task) => task.existingTaskId,
+    );
+
+    const newTasksFromAI = ai.tasks.filter(
+      (task) => !task.existingTaskId,
+    );
 
     const existingTaskIds = existingTasksFromAI
       .map((task) => task.existingTaskId)
@@ -207,16 +160,25 @@ export async function POST(req: Request) {
 
     const allTasks = [...reusedTasks, ...insertedNewTasks];
 
-    const taskById = new Map(allTasks.map((task) => [task.id, task]));
+    const taskById = new Map(
+      allTasks.map((task) => [task.id, task]),
+    );
 
     const taskByTitle = new Map(
-      allTasks.map((task) => [String(task.title).toLowerCase(), task]),
+      allTasks.map((task) => [
+        String(task.title).toLowerCase(),
+        task,
+      ]),
     );
 
     const plannerRows = ai.planner.map((block) => {
       const matchedTask =
-        (block.existingTaskId ? taskById.get(block.existingTaskId) : null) ??
-        taskByTitle.get(String(block.taskTitle).toLowerCase()) ??
+        (block.existingTaskId
+          ? taskById.get(block.existingTaskId)
+          : null) ??
+        taskByTitle.get(
+          String(block.taskTitle).toLowerCase(),
+        ) ??
         taskByTitle.get(String(block.title).toLowerCase());
 
       return {
@@ -232,14 +194,20 @@ export async function POST(req: Request) {
       };
     });
 
-    const { data: insertedPlanner, error: plannerError } = plannerRows.length
-      ? await supabase.from("planner_blocks").insert(plannerRows).select()
-      : { data: [], error: null };
+    const { data: insertedPlanner, error: plannerError } =
+      plannerRows.length
+        ? await supabase
+            .from("planner_blocks")
+            .insert(plannerRows)
+            .select()
+        : { data: [], error: null };
 
     if (plannerError) throw plannerError;
 
     const nextTask =
-      taskByTitle.get(String(ai.nextActionTaskTitle).toLowerCase()) ??
+      taskByTitle.get(
+        String(ai.nextActionTaskTitle).toLowerCase(),
+      ) ??
       allTasks.find((task) => task.status === "pending") ??
       allTasks[0];
 
@@ -260,9 +228,11 @@ export async function POST(req: Request) {
         user_id: user.id,
         brain_dump_id: brainDump.id,
         burnout_level: ai.burnoutLevel,
-        stress_signals: ai.burnoutReport?.stressSignals ?? [],
+        stress_signals:
+          ai.burnoutReport?.stressSignals ?? [],
         reason: ai.burnoutReport?.reason ?? "",
-        recommendation: ai.burnoutReport?.recommendation ?? "",
+        recommendation:
+          ai.burnoutReport?.recommendation ?? "",
       });
 
     if (burnoutError) throw burnoutError;
@@ -279,6 +249,7 @@ export async function POST(req: Request) {
       categories: ai.categories ?? [],
       gentleMessage: ai.gentleMessage,
       nextActionTaskId: nextTask?.id ?? null,
+
       tasks: allTasks.map((task) => ({
         id: task.id,
         title: task.title,
@@ -290,6 +261,7 @@ export async function POST(req: Request) {
         reason: task.reason,
         tinySteps: task.tiny_steps ?? [],
       })),
+
       planner: (insertedPlanner ?? []).map((block) => ({
         id: block.id,
         taskId: block.task_id,
@@ -305,7 +277,8 @@ export async function POST(req: Request) {
 
     return NextResponse.json(
       {
-        error: "Mindrift could not organize this right now. Please try again.",
+        error:
+          "Mindrift could not organize this right now. Please try again.",
       },
       { status: 500 },
     );
