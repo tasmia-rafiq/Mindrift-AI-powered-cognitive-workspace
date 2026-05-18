@@ -5,16 +5,20 @@ import {
   brainDumpJsonInstruction,
   brainDumpSystemPrompt,
 } from "@/lib/brain-dump/groq-prompt";
+import { getUnfinishedTaskContext } from "@/lib/brain-dump/get-unfinished-context";
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
+type Priority = "Low" | "Medium" | "High";
+
 type GroqTask = {
+  existingTaskId: string | null;
   title: string;
   category: string;
-  urgency: "Low" | "Medium" | "High";
-  difficulty: "Low" | "Medium" | "High";
+  urgency: Priority;
+  difficulty: Priority;
   estimatedMinutes: number;
   reason: string;
   tinySteps: string[];
@@ -24,16 +28,17 @@ type GroqPlannerBlock = {
   time: string;
   title: string;
   note: string;
-  energy: "Low" | "Medium" | "High";
+  energy: Priority;
   taskTitle: string;
+  existingTaskId: string | null;
 };
 
 type GroqBrainDumpResult = {
   title: string;
   summary: string;
   emotionalTone: string;
-  burnoutLevel: "Low" | "Medium" | "High";
-  urgencyLevel: "Low" | "Medium" | "High";
+  burnoutLevel: Priority;
+  urgencyLevel: Priority;
   categories: string[];
   gentleMessage: string;
   tasks: GroqTask[];
@@ -62,6 +67,13 @@ export async function POST(req: Request) {
       );
     }
 
+    if (!process.env.GROQ_API_KEY) {
+      return NextResponse.json(
+        { error: "Missing GROQ_API_KEY." },
+        { status: 500 },
+      );
+    }
+
     const body = await req.json();
     const rawText = String(body.rawText || "").trim();
 
@@ -72,9 +84,14 @@ export async function POST(req: Request) {
       );
     }
 
+    const unfinishedTasks = await getUnfinishedTaskContext(user.id);
+
     const completion = await groq.chat.completions.create({
       model: "llama-3.3-70b-versatile",
       temperature: 0.3,
+      response_format: {
+        type: "json_object",
+      },
       messages: [
         {
           role: "system",
@@ -82,12 +99,24 @@ export async function POST(req: Request) {
         },
         {
           role: "user",
-          content: `${brainDumpJsonInstruction}\n\nUser Mind Unload:\n${rawText}`,
+          content: `
+          ${brainDumpJsonInstruction}
+
+          New Mind Unload:
+          ${rawText}
+
+          Previous unfinished tasks:
+          ${JSON.stringify(unfinishedTasks ?? [], null, 2)}
+
+          Important:
+          - If previous unfinished tasks are provided, include them in the new adaptive planner too.
+          - Do not forget them.
+          - Do not duplicate the same task if it already exists.
+          - Blend old unfinished tasks with new tasks based on urgency, energy, difficulty, and stress level.
+          - If user seems tired, keep only urgent/easy tasks first and move heavier tasks later.
+          `,
         },
       ],
-      response_format: {
-        type: "json_object",
-      },
     });
 
     const content = completion.choices[0]?.message?.content;
@@ -111,7 +140,7 @@ export async function POST(req: Request) {
         emotional_tone: ai.emotionalTone,
         urgency_level: ai.urgencyLevel,
         burnout_level: ai.burnoutLevel,
-        categories: ai.categories,
+        categories: ai.categories ?? [],
         gentle_message: ai.gentleMessage,
       })
       .select()
@@ -119,32 +148,76 @@ export async function POST(req: Request) {
 
     if (brainDumpError) throw brainDumpError;
 
-    const taskRows = ai.tasks.map((task) => ({
-      user_id: user.id,
-      brain_dump_id: brainDump.id,
-      title: task.title,
-      category: task.category,
-      urgency: task.urgency,
-      difficulty: task.difficulty,
-      estimated_minutes: task.estimatedMinutes,
-      reason: task.reason,
-      tiny_steps: task.tinySteps,
-      status: "pending",
-    }));
+    const existingTasksFromAI = ai.tasks.filter((task) => task.existingTaskId);
+    const newTasksFromAI = ai.tasks.filter((task) => !task.existingTaskId);
 
-    const { data: insertedTasks, error: tasksError } = await supabase
-      .from("mindrift_tasks")
-      .insert(taskRows)
-      .select();
+    const existingTaskIds = existingTasksFromAI
+      .map((task) => task.existingTaskId)
+      .filter((id): id is string => Boolean(id));
 
-    if (tasksError) throw tasksError;
+    let reusedTasks: any[] = [];
+
+    if (existingTaskIds.length) {
+      await supabase
+        .from("mindrift_tasks")
+        .update({
+          status: "pending",
+          updated_at: new Date().toISOString(),
+        })
+        .in("id", existingTaskIds)
+        .neq("status", "completed");
+
+      const { data, error } = await supabase
+        .from("mindrift_tasks")
+        .select("*")
+        .eq("user_id", user.id)
+        .in("id", existingTaskIds);
+
+      if (error) throw error;
+
+      reusedTasks = data ?? [];
+    }
+
+    let insertedNewTasks: any[] = [];
+
+    if (newTasksFromAI.length) {
+      const newTaskRows = newTasksFromAI.map((task) => ({
+        user_id: user.id,
+        brain_dump_id: brainDump.id,
+        title: task.title,
+        category: task.category,
+        urgency: task.urgency,
+        difficulty: task.difficulty,
+        estimated_minutes: task.estimatedMinutes,
+        reason: task.reason,
+        tiny_steps: task.tinySteps ?? [],
+        status: "pending",
+        source: "ai_generated",
+      }));
+
+      const { data, error } = await supabase
+        .from("mindrift_tasks")
+        .insert(newTaskRows)
+        .select();
+
+      if (error) throw error;
+
+      insertedNewTasks = data ?? [];
+    }
+
+    const allTasks = [...reusedTasks, ...insertedNewTasks];
+
+    const taskById = new Map(allTasks.map((task) => [task.id, task]));
 
     const taskByTitle = new Map(
-      insertedTasks.map((task) => [task.title.toLowerCase(), task]),
+      allTasks.map((task) => [String(task.title).toLowerCase(), task]),
     );
 
     const plannerRows = ai.planner.map((block) => {
-      const matchedTask = taskByTitle.get(block.taskTitle.toLowerCase());
+      const matchedTask =
+        (block.existingTaskId ? taskById.get(block.existingTaskId) : null) ??
+        taskByTitle.get(String(block.taskTitle).toLowerCase()) ??
+        taskByTitle.get(String(block.title).toLowerCase());
 
       return {
         user_id: user.id,
@@ -154,26 +227,32 @@ export async function POST(req: Request) {
         note: block.note,
         time_label: block.time,
         energy_level: block.energy,
-        status: "pending",
+        status: matchedTask?.status ?? "pending",
+        source: "ai_generated",
       };
     });
 
-    const { data: insertedPlanner, error: plannerError } = await supabase
-      .from("planner_blocks")
-      .insert(plannerRows)
-      .select();
+    const { data: insertedPlanner, error: plannerError } = plannerRows.length
+      ? await supabase.from("planner_blocks").insert(plannerRows).select()
+      : { data: [], error: null };
 
     if (plannerError) throw plannerError;
 
     const nextTask =
-      taskByTitle.get(ai.nextActionTaskTitle.toLowerCase()) ?? insertedTasks[0];
+      taskByTitle.get(String(ai.nextActionTaskTitle).toLowerCase()) ??
+      allTasks.find((task) => task.status === "pending") ??
+      allTasks[0];
 
-    await supabase
-      .from("brain_dumps")
-      .update({
-        next_action_task_id: nextTask?.id ?? null,
-      })
-      .eq("id", brainDump.id);
+    if (nextTask) {
+      await supabase
+        .from("brain_dumps")
+        .update({
+          next_action_task_id: nextTask.id,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", brainDump.id)
+        .eq("user_id", user.id);
+    }
 
     const { error: burnoutError } = await supabase
       .from("burnout_reports")
@@ -181,9 +260,9 @@ export async function POST(req: Request) {
         user_id: user.id,
         brain_dump_id: brainDump.id,
         burnout_level: ai.burnoutLevel,
-        stress_signals: ai.burnoutReport.stressSignals,
-        reason: ai.burnoutReport.reason,
-        recommendation: ai.burnoutReport.recommendation,
+        stress_signals: ai.burnoutReport?.stressSignals ?? [],
+        reason: ai.burnoutReport?.reason ?? "",
+        recommendation: ai.burnoutReport?.recommendation ?? "",
       });
 
     if (burnoutError) throw burnoutError;
@@ -191,16 +270,16 @@ export async function POST(req: Request) {
     return NextResponse.json({
       brainDumpId: brainDump.id,
       title: ai.title,
-      rawText: brainDump.raw_text,
+      rawText,
       createdAt: brainDump.created_at,
       summary: ai.summary,
       emotionalTone: ai.emotionalTone,
       burnoutLevel: ai.burnoutLevel,
       urgencyLevel: ai.urgencyLevel,
-      categories: ai.categories,
+      categories: ai.categories ?? [],
       gentleMessage: ai.gentleMessage,
-      nextActionTaskId: nextTask?.id ?? insertedTasks[0]?.id,
-      tasks: insertedTasks.map((task) => ({
+      nextActionTaskId: nextTask?.id ?? null,
+      tasks: allTasks.map((task) => ({
         id: task.id,
         title: task.title,
         category: task.category,
@@ -209,9 +288,9 @@ export async function POST(req: Request) {
         estimatedMinutes: task.estimated_minutes,
         status: task.status,
         reason: task.reason,
-        tinySteps: task.tiny_steps,
+        tinySteps: task.tiny_steps ?? [],
       })),
-      planner: insertedPlanner.map((block) => ({
+      planner: (insertedPlanner ?? []).map((block) => ({
         id: block.id,
         taskId: block.task_id,
         time: block.time_label,
@@ -222,7 +301,7 @@ export async function POST(req: Request) {
       })),
     });
   } catch (error) {
-    console.error("Mind Unload analyze error:", error);
+    console.error("Brain dump analyze error:", error);
 
     return NextResponse.json(
       {
